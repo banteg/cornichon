@@ -45,7 +45,8 @@ def test_permit(cornichon):
     message = encode_structured_data(data)
     signed = owner.sign_message(message)
     assert encode_hex(hash_domain(data)) == cornichon.DOMAIN_SEPARATOR()
-    tx = cornichon.permit(
+    assert cornichon.allowance(owner.address, spender.address) == 0
+    cornichon.permit(
         owner.address, spender.address, amount, nonce, expiry, signed.signature
     )
     assert cornichon.allowance(owner.address, spender.address) == amount
