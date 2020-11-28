@@ -144,10 +144,11 @@ def _burn(sender: address, source: address, amount: uint256):
 
 
 @external
-def burn(amount: uint256):
+def burn(_amount: uint256 = MAX_UINT256):
     """
     Burn CORN for DAI at a rate of (DAI in contract / CORN supply)
     """
+    amount: uint256 = min(_amount, self.balanceOf[msg.sender])
     self._burn(msg.sender, msg.sender, amount)
 
 
