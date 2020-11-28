@@ -1,21 +1,17 @@
 # @version 0.2.7
 from vyper.interfaces import ERC20
 
-
 implements: ERC20
-
 
 event Transfer:
     sender: indexed(address)
     receiver: indexed(address)
     value: uint256
 
-
 event Approval:
     owner: indexed(address)
     spender: indexed(address)
     value: uint256
-
 
 name: public(String[64])
 symbol: public(String[32])
