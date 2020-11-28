@@ -1,0 +1,9 @@
+networks:
+  default: mainnet-fork
+dependencies:
+  - OpenZeppelin/openzeppelin-contracts@3.1.0
+compiler:
+  solc:
+    version: 0.6.11
+    remappings:
+      - "@openzeppelin=OpenZeppelin/openzeppelin-contracts@3.1.0"
