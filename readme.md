@@ -4,6 +4,12 @@ This repo contains everything to produce a snapshot of pre-hack DAI equivalent i
 
 For a technical writeup of the hack, refer to [banteg/evil-jar](https://github.com/banteg/evil-jar) repo.
 
+## Mainnet deployment
+
+MerkleDistributor deployed at: [0x8896C47Cf854644cDC4Dd949a11048a57bDBA9Bc](https://etherscan.io/address/0x8896c47cf854644cdc4dd949a11048a57bdba9bc#code)
+
+Cornichon deployed at: [0xa456b515303B2Ce344E9d2601f91270f8c2Fea5E](https://etherscan.io/address/0xa456b515303B2Ce344E9d2601f91270f8c2Fea5E#code)
+
 ## Deploy
 
 To deploy the distributor on the mainnet:
