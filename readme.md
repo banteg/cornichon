@@ -23,7 +23,12 @@ brownie run snapshot deploy --network mainnet
 To claim the distribution:
 ```
 brownie accounts import alias keystore.json
-brownie run snapshot claim --network mainnet
+brownie run claim --network mainnet
+```
+
+To burn CORN for DAI:
+```
+brownie run claim burn --network mainnet
 ```
 
 ## Tests
