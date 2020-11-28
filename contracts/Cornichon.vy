@@ -165,7 +165,7 @@ def message_digest(owner: address, spender: address, amount: uint256, nonce: uin
             self.DOMAIN_SEPARATOR,
             keccak256(
                 concat(
-                    keccak256("Permit(address owner,address spender,uint256 amount,uint256 nonce,uint256 expiry)"),
+                    PERMIT_TYPE_HASH,
                     convert(owner, bytes32),
                     convert(spender, bytes32),
                     convert(amount, bytes32),
