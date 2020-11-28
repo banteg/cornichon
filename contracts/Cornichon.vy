@@ -13,25 +13,33 @@ event Approval:
     spender: indexed(address)
     value: uint256
 
+event Redeemed:
+    receiver: indexed(address)
+    corn: uint256
+    dai: uint256
+
+
 name: public(String[64])
 symbol: public(String[32])
 decimals: public(uint256)
 balanceOf: public(HashMap[address, uint256])
 allowances: HashMap[address, HashMap[address, uint256]]
+initial_supply: uint256
 total_supply: uint256
+total_burned: public(uint256)
 dai: ERC20
 
 
 @external
 def __init__(_name: String[64], _symbol: String[32], _supply: uint256):
-    init_supply: uint256 = _supply
+    self.initial_supply = _supply
     self.name = _name
     self.symbol = _symbol
     self.decimals = 18
     self.dai = ERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F)
-    self.balanceOf[msg.sender] = init_supply
-    self.total_supply = init_supply
-    log Transfer(ZERO_ADDRESS, msg.sender, init_supply)
+    self.balanceOf[msg.sender] = _supply
+    self.total_supply = _supply
+    log Transfer(ZERO_ADDRESS, msg.sender, _supply)
 
 
 @view
@@ -78,6 +86,15 @@ def _burn(_to: address, _value: uint256):
     self.total_supply -= _value
     self.balanceOf[_to] -= _value
     log Transfer(_to, ZERO_ADDRESS, _value)
+    self._redeem(_to, _value)
+
+
+@internal
+def _redeem(_to: address, _corn: uint256):
+    _dai: uint256 = _corn * (self.dai.balanceOf(self) + self.total_burned) / self.initial_supply
+    self.total_burned += _corn
+    self.dai.transfer(_to, _dai)
+    log Redeemed(_to, _corn, _dai)
 
 
 @external
