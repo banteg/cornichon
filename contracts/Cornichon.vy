@@ -13,7 +13,7 @@ event Approval:
     spender: indexed(address)
     value: uint256
 
-event Redeemed:
+event Pickled:
     receiver: indexed(address)
     corn: uint256
     dai: uint256
@@ -93,7 +93,7 @@ def rate() -> uint256:
 def _redeem(_to: address, _corn: uint256):
     _dai: uint256 = self._rate(_corn)
     self.dai.transfer(_to, _dai)
-    log Redeemed(_to, _corn, _dai)
+    log Pickled(_to, _corn, _dai)
 
 
 @internal
