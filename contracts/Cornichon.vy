@@ -75,7 +75,7 @@ def version() -> String[32]:
 
 @view
 @external
-def allowance(owner : address, spender : address) -> uint256:
+def allowance(owner: address, spender: address) -> uint256:
     return self.allowances[owner][spender]
 
 
@@ -92,17 +92,17 @@ def _transfer(sender: address, source: address, receiver: address, amount: uint2
 
 
 @external
-def transfer(receiver : address, amount : uint256) -> bool:
+def transfer(receiver: address, amount: uint256) -> bool:
     return self._transfer(msg.sender, msg.sender, receiver, amount)
 
 
 @external
-def transferFrom(source : address, receiver : address, amount : uint256) -> bool:
+def transferFrom(source: address, receiver: address, amount: uint256) -> bool:
     return self._transfer(msg.sender, source, receiver, amount)
 
 
 @external
-def approve(spender : address, amount : uint256) -> bool:
+def approve(spender: address, amount: uint256) -> bool:
     self.allowances[msg.sender][spender] = amount
     log Approval(msg.sender, spender, amount)
     return True
