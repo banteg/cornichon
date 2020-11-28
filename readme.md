@@ -1,5 +1,7 @@
 # Cornichon Snapshot
 
+![logo](assets/logo.svg)
+
 This repo contains everything to produce a snapshot of pre-hack DAI equivalent in pDAI Jar.
 
 For a technical writeup of the hack, refer to [banteg/evil-jar](https://github.com/banteg/evil-jar) repo.
