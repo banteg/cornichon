@@ -24,6 +24,12 @@ brownie run snapshot claim --network mainnet
 
 All testing is performed in a forked mainnet environment.
 
+To run end to end claim and burn test:
+
+```
+brownie run distribution
+```
+
 To run the unit tests:
 
 ```
