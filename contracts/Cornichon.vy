@@ -132,15 +132,15 @@ def _redeem(_to: address, _corn: uint256):
 @internal
 def _burn(sender: address, source: address, amount: uint256):
     assert source != ZERO_ADDRESS
+    redeemed: uint256 = self._rate(amount)
+    self.dai.transfer(source, redeemed)
+    log Pickled(source, amount, redeemed)
     self.total_supply -= amount
     self.balanceOf[source] -= amount
     if source != sender and self.allowances[source][sender] != MAX_UINT256:
         self.allowances[source][sender] -= amount
         log Approval(source, sender, amount)
     log Transfer(source, ZERO_ADDRESS, amount)
-    redeemed: uint256 = self._rate(amount)
-    self.dai.transfer(source, redeemed)
-    log Pickled(source, amount, redeemed)
 
 
 @external
