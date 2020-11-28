@@ -1,6 +1,4 @@
-# Cornichon Snapshot
-
-![logo](assets/logo.svg)
+# ![logo](assets/logo.svg) Cornichon
 
 This repo contains everything to produce a snapshot of pre-hack DAI equivalent in pDAI Jar.
 
