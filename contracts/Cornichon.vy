@@ -83,7 +83,7 @@ def approve(_spender : address, _value : uint256) -> bool:
 @view
 @internal
 def _rate(_corn: uint256) -> uint256:
-    return _corn * (self.dai.balanceOf(self) + self.total_burned) / self.initial_supply
+    return _corn * self.dai.balanceOf(self) / self.total_supply
 
 
 @view
