@@ -198,15 +198,3 @@ def _permit(owner: address, spender: address, amount: uint256, nonce: uint256, e
 @external
 def permit(owner: address, spender: address, amount: uint256, nonce: uint256, expiry: uint256, signature: Bytes[65]) -> bool:
     return self._permit(owner, spender, amount, nonce, expiry, signature)
-
-
-@external
-def transfer_with_permit(p: Permit, signature: Bytes[65]):
-    self._permit(p.owner, p.spender, p.amount, p.nonce, p.expiry, signature)
-    self._transfer(p.spender, p.owner, p.spender, p.amount)
-
-
-@external
-def burn_with_permit(p: Permit, signature: Bytes[65]):
-    self._permit(p.owner, p.spender, p.amount, p.nonce, p.expiry, signature)
-    self._burn(p.spender, p.owner, p.amount)
