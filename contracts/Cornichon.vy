@@ -24,15 +24,12 @@ symbol: public(String[32])
 decimals: public(uint256)
 balanceOf: public(HashMap[address, uint256])
 allowances: HashMap[address, HashMap[address, uint256]]
-initial_supply: uint256
 total_supply: uint256
-total_burned: public(uint256)
 dai: ERC20
 
 
 @external
 def __init__(_name: String[64], _symbol: String[32], _supply: uint256):
-    self.initial_supply = _supply
     self.name = _name
     self.symbol = _symbol
     self.decimals = 18
@@ -95,7 +92,6 @@ def rate() -> uint256:
 @internal
 def _redeem(_to: address, _corn: uint256):
     _dai: uint256 = self._rate(_corn)
-    self.total_burned += _corn
     self.dai.transfer(_to, _dai)
     log Redeemed(_to, _corn, _dai)
 
