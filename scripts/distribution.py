@@ -5,10 +5,9 @@ from brownie import Cornichon, MerkleDistributor, interface, accounts
 def main():
     tree = json.load(open("snapshot/04-merkle.json"))
     whale = accounts.at("0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7", force=True)
-    corn = Cornichon.deploy("Cornichon", "CORN", tree["tokenTotal"], {"from": whale})
     dai = interface.ERC20("0x6B175474E89094C44Da98b954EedeAC495271d0F", owner=whale)
-    distributor = MerkleDistributor.deploy(corn, tree["merkleRoot"], {"from": whale})
-    corn.transfer(distributor, corn.balanceOf(whale))
+    corn = Cornichon.at('0xa456b515303B2Ce344E9d2601f91270f8c2Fea5E', owner=whale)
+    distributor = MerkleDistributor.at('0x8896C47Cf854644cDC4Dd949a11048a57bDBA9Bc', owner=whale)
     # a hacker sends everything back
     dai.transfer(corn, tree["tokenTotal"])
 
