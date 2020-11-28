@@ -23,9 +23,14 @@ name: public(String[64])
 symbol: public(String[32])
 decimals: public(uint256)
 balanceOf: public(HashMap[address, uint256])
+nonces: public(HashMap[address, uint256])
 allowances: HashMap[address, HashMap[address, uint256]]
+version: public(String[32])
 total_supply: uint256
 dai: ERC20
+DOMAIN_SEPARATOR: public(bytes32)
+DOMAIN_TYPE_HASH: constant(bytes32) = keccak256('EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)')
+PERMIT_TYPE_HASH: constant(bytes32) = keccak256("Permit(address owner,address spender,uint256 amount,uint256 nonce,uint256 expiry)")
 
 
 @external
@@ -33,10 +38,27 @@ def __init__(_name: String[64], _symbol: String[32], _supply: uint256):
     self.name = _name
     self.symbol = _symbol
     self.decimals = 18
+    self.version = "1"
     self.dai = ERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F)
     self.balanceOf[msg.sender] = _supply
     self.total_supply = _supply
     log Transfer(ZERO_ADDRESS, msg.sender, _supply)
+
+    self.DOMAIN_SEPARATOR = keccak256(
+        concat(
+            DOMAIN_TYPE_HASH,
+            keccak256(convert(self.name, Bytes[64])),
+            keccak256(convert(self.version, Bytes[32])),
+            convert(chain.id, bytes32),
+            convert(self, bytes32)
+        )
+    )
+
+
+@view
+@external
+def dom_sep() -> uint256:
+    return chain.id
 
 
 @view
@@ -116,3 +138,42 @@ def burn(_value: uint256):
 def burnFrom(_to: address, _value: uint256):
     self.allowances[_to][msg.sender] -= _value
     self._burn(_to, _value)
+
+
+@view
+@internal
+def message_digest(owner: address, spender: address, amount: uint256, nonce: uint256, expiry: uint256) -> bytes32:
+    return keccak256(
+        concat(
+            b'\x19\x01',
+            self.DOMAIN_SEPARATOR,
+            keccak256(
+                concat(
+                    keccak256("Permit(address owner,address spender,uint256 amount,uint256 nonce,uint256 expiry)"),
+                    convert(owner, bytes32),
+                    convert(spender, bytes32),
+                    convert(amount, bytes32),
+                    convert(nonce, bytes32),
+                    convert(expiry, bytes32),
+                )
+            )
+        )
+    )
+
+
+@external
+def permit(owner: address, spender: address, amount: uint256, nonce: uint256, expiry: uint256, signature: Bytes[65]) -> bool:
+    assert expiry >= block.timestamp  # dev: permit expired
+    assert owner != ZERO_ADDRESS  # dev: invalid owner
+    assert nonce == self.nonces[owner]  # dev: invalid nonce
+    digest: bytes32 = self.message_digest(owner, spender, amount, nonce, expiry)
+    # NOTE: signature is packed as r, s, v
+    r: uint256 = convert(slice(signature, 0, 32), uint256)
+    s: uint256 = convert(slice(signature, 32, 32), uint256)
+    v: uint256 = convert(slice(signature, 64, 1), uint256)
+    assert ecrecover(digest, v, r, s) == owner  # dev: invalid signature
+
+    self.allowances[owner][spender] = amount
+    self.nonces[owner] += 1
+    log Approval(owner, spender, amount)
+    return True
