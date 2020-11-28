@@ -18,14 +18,26 @@ event Pickled:
     corn: uint256
     dai: uint256
 
+struct Permit:
+    owner: address
+    spender: address
+    amount: uint256
+    nonce: uint256
+    expiry: uint256
+
 
 name: public(String[64])
 symbol: public(String[32])
 decimals: public(uint256)
 balanceOf: public(HashMap[address, uint256])
+nonces: public(HashMap[address, uint256])
 allowances: HashMap[address, HashMap[address, uint256]]
 total_supply: uint256
 dai: ERC20
+DOMAIN_SEPARATOR: public(bytes32)
+contract_version: constant(String[32]) = "1"
+DOMAIN_TYPE_HASH: constant(bytes32) = keccak256('EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)')
+PERMIT_TYPE_HASH: constant(bytes32) = keccak256("Permit(address owner,address spender,uint256 amount,uint256 nonce,uint256 expiry)")
 
 
 @external
@@ -38,6 +50,16 @@ def __init__(_name: String[64], _symbol: String[32], _supply: uint256):
     self.total_supply = _supply
     log Transfer(ZERO_ADDRESS, msg.sender, _supply)
 
+    self.DOMAIN_SEPARATOR = keccak256(
+        concat(
+            DOMAIN_TYPE_HASH,
+            keccak256(convert(self.name, Bytes[64])),
+            keccak256(convert(contract_version, Bytes[32])),
+            convert(chain.id, bytes32),
+            convert(self, bytes32)
+        )
+    )
+
 
 @view
 @external
@@ -47,48 +69,57 @@ def totalSupply() -> uint256:
 
 @view
 @external
-def allowance(_owner : address, _spender : address) -> uint256:
-    return self.allowances[_owner][_spender]
+def version() -> String[32]:
+    return contract_version
 
 
+@view
 @external
-def transfer(_to : address, _value : uint256) -> bool:
-    assert not _to in [self, ZERO_ADDRESS]
-    self.balanceOf[msg.sender] -= _value
-    self.balanceOf[_to] += _value
-    log Transfer(msg.sender, _to, _value)
+def allowance(owner : address, spender : address) -> uint256:
+    return self.allowances[owner][spender]
+
+
+@internal
+def _transfer(sender: address, source: address, receiver: address, amount: uint256) -> bool:
+    assert not receiver in [self, ZERO_ADDRESS]
+    self.balanceOf[source] -= amount
+    self.balanceOf[receiver] += amount
+    if source != sender and self.allowances[source][sender] != MAX_UINT256:
+        self.allowances[source][sender] -= amount
+        log Approval(source, sender, amount)
+    log Transfer(source, receiver, amount)
     return True
 
 
 @external
-def transferFrom(_from : address, _to : address, _value : uint256) -> bool:
-    assert not _to in [self, ZERO_ADDRESS]
-    self.balanceOf[_from] -= _value
-    self.balanceOf[_to] += _value
-    self.allowances[_from][msg.sender] -= _value
-    log Transfer(_from, _to, _value)
-    return True
+def transfer(receiver : address, amount : uint256) -> bool:
+    return self._transfer(msg.sender, msg.sender, receiver, amount)
 
 
 @external
-def approve(_spender : address, _value : uint256) -> bool:
-    self.allowances[msg.sender][_spender] = _value
-    log Approval(msg.sender, _spender, _value)
+def transferFrom(source : address, receiver : address, amount : uint256) -> bool:
+    return self._transfer(msg.sender, source, receiver, amount)
+
+
+@external
+def approve(spender : address, amount : uint256) -> bool:
+    self.allowances[msg.sender][spender] = amount
+    log Approval(msg.sender, spender, amount)
     return True
 
 
 @view
 @internal
-def _rate(_corn: uint256) -> uint256:
+def _rate(amount: uint256) -> uint256:
     if self.total_supply == 0:
         return 0
-    return _corn * self.dai.balanceOf(self) / self.total_supply
+    return amount * self.dai.balanceOf(self) / self.total_supply
 
 
 @view
 @external
 def rate() -> uint256:
-    return self._rate(10 ** 18)
+    return self._rate(10 ** self.decimals)
 
 
 @internal
@@ -99,20 +130,83 @@ def _redeem(_to: address, _corn: uint256):
 
 
 @internal
-def _burn(_to: address, _value: uint256):
-    assert _to != ZERO_ADDRESS
-    self._redeem(_to, _value)
-    self.total_supply -= _value
-    self.balanceOf[_to] -= _value
-    log Transfer(_to, ZERO_ADDRESS, _value)
+def _burn(sender: address, source: address, amount: uint256):
+    assert source != ZERO_ADDRESS
+    self.total_supply -= amount
+    self.balanceOf[source] -= amount
+    if source != sender and self.allowances[source][sender] != MAX_UINT256:
+        self.allowances[source][sender] -= amount
+        log Approval(source, sender, amount)
+    log Transfer(source, ZERO_ADDRESS, amount)
+    redeemed: uint256 = self._rate(amount)
+    self.dai.transfer(source, redeemed)
+    log Pickled(source, amount, redeemed)
 
 
 @external
-def burn(_value: uint256):
-    self._burn(msg.sender, _value)
+def burn(amount: uint256):
+    """
+    Burn CORN for DAI at a rate of (DAI in contract / CORN supply)
+    """
+    self._burn(msg.sender, msg.sender, amount)
 
 
 @external
-def burnFrom(_to: address, _value: uint256):
-    self.allowances[_to][msg.sender] -= _value
-    self._burn(_to, _value)
+def burnFrom(source: address, amount: uint256):
+    self._burn(msg.sender, source, amount)
+
+
+@view
+@internal
+def message_digest(owner: address, spender: address, amount: uint256, nonce: uint256, expiry: uint256) -> bytes32:
+    return keccak256(
+        concat(
+            b'\x19\x01',
+            self.DOMAIN_SEPARATOR,
+            keccak256(
+                concat(
+                    keccak256("Permit(address owner,address spender,uint256 amount,uint256 nonce,uint256 expiry)"),
+                    convert(owner, bytes32),
+                    convert(spender, bytes32),
+                    convert(amount, bytes32),
+                    convert(nonce, bytes32),
+                    convert(expiry, bytes32),
+                )
+            )
+        )
+    )
+
+
+@internal
+def _permit(owner: address, spender: address, amount: uint256, nonce: uint256, expiry: uint256, signature: Bytes[65]) -> bool:
+    assert expiry >= block.timestamp  # dev: permit expired
+    assert owner != ZERO_ADDRESS  # dev: invalid owner
+    assert nonce == self.nonces[owner]  # dev: invalid nonce
+    digest: bytes32 = self.message_digest(owner, spender, amount, nonce, expiry)
+    # NOTE: signature is packed as r, s, v
+    r: uint256 = convert(slice(signature, 0, 32), uint256)
+    s: uint256 = convert(slice(signature, 32, 32), uint256)
+    v: uint256 = convert(slice(signature, 64, 1), uint256)
+    assert ecrecover(digest, v, r, s) == owner  # dev: invalid signature
+
+    self.allowances[owner][spender] = amount
+    self.nonces[owner] += 1
+    log Approval(owner, spender, amount)
+    return True
+
+
+@external
+def permit(owner: address, spender: address, amount: uint256, nonce: uint256, expiry: uint256, signature: Bytes[65]) -> bool:
+    return self._permit(owner, spender, amount, nonce, expiry, signature)
+
+
+@external
+def transfer_with_permit(p: Permit, signature: Bytes[65]):
+    self._permit(p.owner, p.spender, p.amount, p.nonce, p.expiry, signature)
+    self._transfer(p.spender, p.owner, p.spender, p.amount)
+
+
+@external
+def burn_with_permit(p: Permit, signature: Bytes[65]):
+    self._permit(p.owner, p.spender, p.amount, p.nonce, p.expiry, signature)
+    self._burn(p.spender, p.owner, p.amount)
