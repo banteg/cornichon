@@ -80,15 +80,6 @@ def approve(_spender : address, _value : uint256) -> bool:
     return True
 
 
-@internal
-def _burn(_to: address, _value: uint256):
-    assert _to != ZERO_ADDRESS
-    self.total_supply -= _value
-    self.balanceOf[_to] -= _value
-    log Transfer(_to, ZERO_ADDRESS, _value)
-    self._redeem(_to, _value)
-
-
 @view
 @internal
 def _rate(_corn: uint256) -> uint256:
@@ -107,6 +98,15 @@ def _redeem(_to: address, _corn: uint256):
     self.total_burned += _corn
     self.dai.transfer(_to, _dai)
     log Redeemed(_to, _corn, _dai)
+
+
+@internal
+def _burn(_to: address, _value: uint256):
+    assert _to != ZERO_ADDRESS
+    self.total_supply -= _value
+    self.balanceOf[_to] -= _value
+    log Transfer(_to, ZERO_ADDRESS, _value)
+    self._redeem(_to, _value)
 
 
 @external
