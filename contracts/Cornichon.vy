@@ -171,8 +171,8 @@ def message_digest(owner: address, spender: address, amount: uint256, nonce: uin
     )
 
 
-@internal
-def _permit(owner: address, spender: address, amount: uint256, nonce: uint256, expiry: uint256, signature: Bytes[65]) -> bool:
+@external
+def permit(owner: address, spender: address, amount: uint256, nonce: uint256, expiry: uint256, signature: Bytes[65]) -> bool:
     assert expiry >= block.timestamp  # dev: permit expired
     assert owner != ZERO_ADDRESS  # dev: invalid owner
     assert nonce == self.nonces[owner]  # dev: invalid nonce
@@ -187,8 +187,3 @@ def _permit(owner: address, spender: address, amount: uint256, nonce: uint256, e
     self.nonces[owner] += 1
     log Approval(owner, spender, amount)
     return True
-
-
-@external
-def permit(owner: address, spender: address, amount: uint256, nonce: uint256, expiry: uint256, signature: Bytes[65]) -> bool:
-    return self._permit(owner, spender, amount, nonce, expiry, signature)
