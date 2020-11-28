@@ -99,10 +99,10 @@ def _redeem(_to: address, _corn: uint256):
 @internal
 def _burn(_to: address, _value: uint256):
     assert _to != ZERO_ADDRESS
+    self._redeem(_to, _value)
     self.total_supply -= _value
     self.balanceOf[_to] -= _value
     log Transfer(_to, ZERO_ADDRESS, _value)
-    self._redeem(_to, _value)
 
 
 @external
