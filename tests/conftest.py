@@ -8,17 +8,17 @@ def isolation_setup(fn_isolation):
     pass
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def deployer(accounts):
     return accounts[0]
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def cornichon(Cornichon, tree, deployer):
     return Cornichon.deploy("Cornichon", "CORN", tree["tokenTotal"], {"from": deployer})
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def tree():
     with open("snapshot/04-merkle.json") as fp:
         claim_data = json.load(fp)
@@ -28,7 +28,7 @@ def tree():
     return claim_data
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def distributor(MerkleDistributor, tree, cornichon, deployer):
     contract = MerkleDistributor.deploy(
         cornichon, tree["merkleRoot"], {"from": deployer}
