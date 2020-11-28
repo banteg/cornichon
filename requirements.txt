@@ -1,0 +1,5 @@
+eth-abi
+eth-brownie>=1.11.6,<2.0.0
+eth-utils
+toolz
+tqdm
