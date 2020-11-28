@@ -89,9 +89,21 @@ def _burn(_to: address, _value: uint256):
     self._redeem(_to, _value)
 
 
+@view
+@internal
+def _rate(_corn: uint256) -> uint256:
+    return _corn * (self.dai.balanceOf(self) + self.total_burned) / self.initial_supply
+
+
+@view
+@external
+def rate() -> uint256:
+    return self._rate(10 ** 18)
+
+
 @internal
 def _redeem(_to: address, _corn: uint256):
-    _dai: uint256 = _corn * (self.dai.balanceOf(self) + self.total_burned) / self.initial_supply
+    _dai: uint256 = self._rate(_corn)
     self.total_burned += _corn
     self.dai.transfer(_to, _dai)
     log Redeemed(_to, _corn, _dai)
