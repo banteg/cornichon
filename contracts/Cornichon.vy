@@ -100,11 +100,9 @@ def _redeem(_to: address, _corn: uint256):
 @external
 def burn(_value: uint256):
     self._burn(msg.sender, _value)
-    self.dai.transfer(msg.sender, _value)
 
 
 @external
 def burnFrom(_to: address, _value: uint256):
     self.allowances[_to][msg.sender] -= _value
     self._burn(_to, _value)
-    self.dai.transfer(_to, _value)
