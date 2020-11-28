@@ -23,7 +23,7 @@ dai: ERC20
 
 
 @external
-def __init__(_name: String[64], _symbol: String[32], _supply: uint256, _token: address):
+def __init__(_name: String[64], _symbol: String[32], _supply: uint256):
     init_supply: uint256 = _supply
     self.name = _name
     self.symbol = _symbol
