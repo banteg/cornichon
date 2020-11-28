@@ -123,13 +123,6 @@ def rate() -> uint256:
 
 
 @internal
-def _redeem(_to: address, _corn: uint256):
-    _dai: uint256 = self._rate(_corn)
-    self.dai.transfer(_to, _dai)
-    log Pickled(_to, _corn, _dai)
-
-
-@internal
 def _burn(sender: address, source: address, amount: uint256):
     assert source != ZERO_ADDRESS
     redeemed: uint256 = self._rate(amount)
