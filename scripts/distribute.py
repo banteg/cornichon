@@ -20,10 +20,11 @@ def main():
     for user in tree["claims"]:
         user = accounts.at(user, force=True)
         amount = corn.balanceOf(user)
+        before = dai.balanceOf(user)
         corn.burn(amount, {"from": user})
         assert corn.rate() == "1 ether"
         assert corn.balanceOf(user) == 0
-        assert dai.balanceOf(user) == amount
+        assert dai.balanceOf(user) == before + amount
         print("rate:", corn.rate().to("ether"))
         print("remaining supply:", corn.totalSupply().to("ether"))
         print("remaining dai:", dai.balanceOf(corn).to("ether"))
