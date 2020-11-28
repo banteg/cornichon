@@ -19,14 +19,16 @@ decimals: public(uint256)
 balanceOf: public(HashMap[address, uint256])
 allowances: HashMap[address, HashMap[address, uint256]]
 total_supply: uint256
+dai: ERC20
 
 
 @external
-def __init__(_name: String[64], _symbol: String[32], _supply: uint256):
+def __init__(_name: String[64], _symbol: String[32], _supply: uint256, _token: address):
     init_supply: uint256 = _supply
     self.name = _name
     self.symbol = _symbol
     self.decimals = 18
+    self.dai = ERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F)
     self.balanceOf[msg.sender] = init_supply
     self.total_supply = init_supply
     log Transfer(ZERO_ADDRESS, msg.sender, init_supply)
@@ -81,9 +83,11 @@ def _burn(_to: address, _value: uint256):
 @external
 def burn(_value: uint256):
     self._burn(msg.sender, _value)
+    self.dai.transfer(msg.sender, _value)
 
 
 @external
 def burnFrom(_to: address, _value: uint256):
     self.allowances[_to][msg.sender] -= _value
     self._burn(_to, _value)
+    self.dai.transfer(_to, _value)
