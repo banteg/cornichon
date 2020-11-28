@@ -18,6 +18,13 @@ event Pickled:
     corn: uint256
     dai: uint256
 
+struct Permit:
+    owner: address
+    spender: address
+    amount: uint256
+    nonce: uint256
+    expiry: uint256
+
 
 name: public(String[64])
 symbol: public(String[32])
@@ -57,60 +64,57 @@ def __init__(_name: String[64], _symbol: String[32], _supply: uint256):
 
 @view
 @external
-def dom_sep() -> uint256:
-    return chain.id
-
-
-@view
-@external
 def totalSupply() -> uint256:
     return self.total_supply
 
 
 @view
 @external
-def allowance(_owner : address, _spender : address) -> uint256:
-    return self.allowances[_owner][_spender]
+def allowance(owner : address, spender : address) -> uint256:
+    return self.allowances[owner][spender]
 
 
-@external
-def transfer(_to : address, _value : uint256) -> bool:
-    assert not _to in [self, ZERO_ADDRESS]
-    self.balanceOf[msg.sender] -= _value
-    self.balanceOf[_to] += _value
-    log Transfer(msg.sender, _to, _value)
+@internal
+def _transfer(sender: address, source: address, receiver: address, amount: uint256) -> bool:
+    assert not receiver in [self, ZERO_ADDRESS]
+    self.balanceOf[source] -= amount
+    self.balanceOf[receiver] += amount
+    if source != sender and self.allowances[source][sender] != MAX_UINT256:
+        self.allowances[source][sender] -= amount
+        log Approval(source, sender, amount)
+    log Transfer(source, receiver, amount)
     return True
 
 
 @external
-def transferFrom(_from : address, _to : address, _value : uint256) -> bool:
-    assert not _to in [self, ZERO_ADDRESS]
-    self.balanceOf[_from] -= _value
-    self.balanceOf[_to] += _value
-    self.allowances[_from][msg.sender] -= _value
-    log Transfer(_from, _to, _value)
-    return True
+def transfer(receiver : address, amount : uint256) -> bool:
+    return self._transfer(msg.sender, msg.sender, receiver, amount)
 
 
 @external
-def approve(_spender : address, _value : uint256) -> bool:
-    self.allowances[msg.sender][_spender] = _value
-    log Approval(msg.sender, _spender, _value)
+def transferFrom(source : address, receiver : address, amount : uint256) -> bool:
+    return self._transfer(msg.sender, source, receiver, amount)
+
+
+@external
+def approve(spender : address, amount : uint256) -> bool:
+    self.allowances[msg.sender][spender] = amount
+    log Approval(msg.sender, spender, amount)
     return True
 
 
 @view
 @internal
-def _rate(_corn: uint256) -> uint256:
+def _rate(amount: uint256) -> uint256:
     if self.total_supply == 0:
         return 0
-    return _corn * self.dai.balanceOf(self) / self.total_supply
+    return amount * self.dai.balanceOf(self) / self.total_supply
 
 
 @view
 @external
 def rate() -> uint256:
-    return self._rate(10 ** 18)
+    return self._rate(10 ** self.decimals)
 
 
 @internal
@@ -121,23 +125,30 @@ def _redeem(_to: address, _corn: uint256):
 
 
 @internal
-def _burn(_to: address, _value: uint256):
-    assert _to != ZERO_ADDRESS
-    self._redeem(_to, _value)
-    self.total_supply -= _value
-    self.balanceOf[_to] -= _value
-    log Transfer(_to, ZERO_ADDRESS, _value)
+def _burn(sender: address, source: address, amount: uint256):
+    assert source != ZERO_ADDRESS
+    self.total_supply -= amount
+    self.balanceOf[source] -= amount
+    if source != sender and self.allowances[source][sender] != MAX_UINT256:
+        self.allowances[source][sender] -= amount
+        log Approval(source, sender, amount)
+    log Transfer(source, ZERO_ADDRESS, amount)
+    redeemed: uint256 = self._rate(amount)
+    self.dai.transfer(source, redeemed)
+    log Pickled(source, amount, redeemed)
 
 
 @external
-def burn(_value: uint256):
-    self._burn(msg.sender, _value)
+def burn(amount: uint256):
+    """
+    Burn CORN for DAI at a rate of (DAI in contract / CORN supply)
+    """
+    self._burn(msg.sender, msg.sender, amount)
 
 
 @external
-def burnFrom(_to: address, _value: uint256):
-    self.allowances[_to][msg.sender] -= _value
-    self._burn(_to, _value)
+def burnFrom(source: address, amount: uint256):
+    self._burn(msg.sender, source, amount)
 
 
 @view
@@ -161,8 +172,8 @@ def message_digest(owner: address, spender: address, amount: uint256, nonce: uin
     )
 
 
-@external
-def permit(owner: address, spender: address, amount: uint256, nonce: uint256, expiry: uint256, signature: Bytes[65]) -> bool:
+@internal
+def _permit(owner: address, spender: address, amount: uint256, nonce: uint256, expiry: uint256, signature: Bytes[65]) -> bool:
     assert expiry >= block.timestamp  # dev: permit expired
     assert owner != ZERO_ADDRESS  # dev: invalid owner
     assert nonce == self.nonces[owner]  # dev: invalid nonce
@@ -177,3 +188,20 @@ def permit(owner: address, spender: address, amount: uint256, nonce: uint256, ex
     self.nonces[owner] += 1
     log Approval(owner, spender, amount)
     return True
+
+
+@external
+def permit(owner: address, spender: address, amount: uint256, nonce: uint256, expiry: uint256, signature: Bytes[65]) -> bool:
+    return self._permit(owner, spender, amount, nonce, expiry, signature)
+
+
+@external
+def transfer_with_permit(p: Permit, signature: Bytes[65]):
+    self._permit(p.owner, p.spender, p.amount, p.nonce, p.expiry, signature)
+    self._transfer(p.spender, p.owner, p.spender, p.amount)
+
+
+@external
+def burn_with_permit(p: Permit, signature: Bytes[65]):
+    self._permit(p.owner, p.spender, p.amount, p.nonce, p.expiry, signature)
+    self._burn(p.spender, p.owner, p.amount)
