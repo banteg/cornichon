@@ -9,6 +9,7 @@ def main():
     dai = interface.ERC20("0x6B175474E89094C44Da98b954EedeAC495271d0F", owner=whale)
     distributor = MerkleDistributor.deploy(corn, tree["merkleRoot"], {"from": whale})
     corn.transfer(distributor, corn.balanceOf(whale))
+    # a hacker sends everything back
     dai.transfer(corn, tree["tokenTotal"])
 
     for user, claim in tree["claims"].items():
@@ -21,8 +22,8 @@ def main():
         user = accounts.at(user, force=True)
         amount = corn.balanceOf(user)
         before = dai.balanceOf(user)
-        corn.burn(amount, {"from": user})
         assert corn.rate() == "1 ether"
+        corn.burn(amount, {"from": user})
         assert corn.balanceOf(user) == 0
         assert dai.balanceOf(user) == before + amount
         print("rate:", corn.rate().to("ether"))

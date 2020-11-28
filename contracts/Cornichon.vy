@@ -80,6 +80,8 @@ def approve(_spender : address, _value : uint256) -> bool:
 @view
 @internal
 def _rate(_corn: uint256) -> uint256:
+    if self.total_supply == 0:
+        return 0
     return _corn * self.dai.balanceOf(self) / self.total_supply
 
 
