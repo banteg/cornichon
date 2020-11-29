@@ -28,7 +28,7 @@ def main():
 
     amount = Wei(int(claim["amount"], 16)).to("ether")
     _amount = click.style(f"{amount:,.2f} CORN", fg="green", bold=True)
-    print(f"Claimable amount: {_amount} CORN")
+    print(f"Claimable amount: {_amount}")
     dist.claim(claim["index"], user, claim["amount"], claim["proof"])
 
 
